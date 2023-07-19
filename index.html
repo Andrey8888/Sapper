@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сапер</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(10, 20px); /* Измените размер поля здесь, если нужно */
+            gap: 2px;
+        }
+        .cell {
+            width: 20px;
+            height: 20px;
+            background-color: #ccc;
+            border: 1px solid #fff;
+            text-align: center;
+            line-height: 20px;
+            font-size: 14px;
+            user-select: none;
+            cursor: pointer;
+        }
+        .cell.hidden {
+            background-color: #999;
+        }
+        .cell.mine {
+            background-color: #f00;
+        }
+        .cell.flag {
+            background-color: #0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="board"></div>
+
+    <script>
+        const boardSize = 10; // Размер поля
+        const numberOfMines = 15; // Количество мин
+
+        let board = [];
+        let mines = [];
+
+        // Создание поля
+        function createBoard() {
+            for (let i = 0; i < boardSize; i++) {
+                board[i] = [];
+                for (let j = 0; j < boardSize; j++) {
+                    board[i][j] = {
+                        mine: false,
+                        count: 0,
+                        revealed: false,
+                        flagged: false,
+                    };
+                }
+            }
+        }
+
+        // Расстановка мин
+        function placeMines() {
+            let minesPlaced = 0;
+            while (minesPlaced < numberOfMines) {
+                const x = Math.floor(Math.random() * boardSize);
+                const y = Math.floor(Math.random() * boardSize);
+                if (!board[x][y].mine) {
+                    board[x][y].mine = true;
+                    minesPlaced++;
+                    mines.push({ x, y });
+                }
+            }
+        }
+
+        // Подсчет числа мин вокруг клетки
+        function calculateCounts() {
+            for (let { x, y } of mines) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        if (x + dx >= 0 && x + dx < boardSize && y + dy >= 0 && y + dy < boardSize) {
+                            board[x + dx][y + dy].count++;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Отображение поля в HTML
+        function renderBoard() {
+            const boardElement = document.querySelector('.board');
+            boardElement.innerHTML = '';
+            for (let i = 0; i < boardSize; i++) {
+                for (let j = 0; j < boardSize; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell hidden';
+                    cell.dataset.x = i;
+                    cell.dataset.y = j;
+                    cell.addEventListener('click', revealCell);
+                    cell.addEventListener('contextmenu', flagCell);
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+
+        // Размещение мин и обновление поля
+        function startGame() {
+            createBoard();
+            placeMines();
+            calculateCounts();
+            renderBoard();
+        }
+
+        // Открытие клетки
+        function revealCell(event) {
+            const cell = event.target;
+            const x = parseInt(cell.dataset.x);
+            const y = parseInt(cell.dataset.y);
+
+            if (board[x][y].revealed || board[x][y].flagged) {
+                return;
+            }
+
+            board[x][y].revealed = true;
+            cell.classList.remove('hidden');
+
+            if (board[x][y].mine) {
+                cell.classList.add('mine');
+                alert('Игра окончена! Вы проиграли.');
+                revealMines();
+            } else if (board[x][y].count > 0) {
+                cell.textContent = board[x][y].count;
+            } else {
+                // Рекурсивно открываем соседние клетки
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        if (x + dx >= 0 && x + dx < boardSize && y + dy >= 0 && y + dy < boardSize) {
+                            const neighborCell = document.querySelector(`[data-x="${x + dx}"][data-y="${y + dy}"]`);
+                            revealCell({ target: neighborCell });
+                        }
+                    }
+                }
+            }
+
+            checkWin();
+        }
+
+        // Поставить флажок на клетку
+        function flagCell(event) {
+            event.preventDefault();
+            const cell = event.target;
+            const x = parseInt(cell.dataset.x);
+            const y = parseInt(cell.dataset.y);
+
+            if (!board[x][y].revealed) {
+                board[x][y].flagged = !board[x][y].flagged;
+                cell.classList.toggle('flag');
+            }
+
+            checkWin();
+        }
+
+        // Проверка на победу
+        function checkWin() {
+            let revealedCount = 0;
+            let flaggedCount = 0;
+
+            for (let i = 0; i < boardSize; i++) {
+                for (let j = 0; j < boardSize; j++) {
+                    if (board[i][j].revealed) {
+                        revealedCount++;
+                    }
+                    if (board[i][j].flagged && board[i][j].mine) {
+                        flaggedCount++;
+                    }
+                }
+            }
+
+            if (revealedCount + flaggedCount === boardSize * boardSize && flaggedCount === numberOfMines) {
+                setTimeout(() => {
+                    alert('Поздравляем! Вы выиграли!');
+                }, 100);
+            }
+        }
+
+        // Отображение всех мин после проигрыша
+        function revealMines() {
+            mines.forEach(({ x, y }) => {
+                const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+                cell.classList.remove('hidden');
+                cell.classList.add('mine');
+            });
+        }
+
+        // Запуск игры при загрузке страницы
+        document.addEventListener('DOMContentLoaded', startGame);
+    </script>
+</body>
+</html>
