@@ -104,33 +104,9 @@
                     cell.dataset.y = j;
                     cell.addEventListener('click', revealCell);
                     cell.addEventListener('contextmenu', flagCell);
-                    cell.addEventListener('touchstart', function(event) {
-                        event.preventDefault();
-                        this.longPressTimer = setTimeout(() => longPressFlag(event), 500);
-                    });
-                    cell.addEventListener('touchend', function(event) {
-                        event.preventDefault();
-                        clearTimeout(this.longPressTimer);
-                        flagCell(event);
-                    });
                     boardElement.appendChild(cell);
                 }
             }
-        }
-
-        // Обработчик долгого нажатия (для установки флажка)
-        function longPressFlag(event) {
-            event.preventDefault();
-            const cell = event.target;
-            const x = parseInt(cell.dataset.x);
-            const y = parseInt(cell.dataset.y);
-
-            if (!board[x][y].revealed) {
-                board[x][y].flagged = !board[x][y].flagged;
-                cell.classList.toggle('flag');
-            }
-
-            checkWin();
         }
 
         // Размещение мин и обновление поля
